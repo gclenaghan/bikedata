@@ -169,6 +169,9 @@ form {
 		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="sbday" style="stroke-width: 3px; opacity: 1;"></svg> Southbound</td>
 		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="sbavg"></svg> Southbound Average</td>
 	</tr>
+	<tr>
+		<td colspan="2" class="caption">Data from 10/2/12 to 3/31/15, <a href="https://data.seattle.gov/Transportation/Fremont-Bridge-Hourly-Bicycle-Counts-by-Month-Octo/65db-xm6k">available here</a>.</td></td></td>
+	</tr>
 </table>
 </div>
 <div id="vis"></div>
@@ -178,7 +181,7 @@ form {
 		<p><strong>Precip.:</strong> <span id="precip">100</span> in.</p>
 </div>
 </div>
-<script src="http://d3js.org/d3.v3.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
 	
 var barmargin = {top: 5, right: 10, bottom: 0, left: 10},
@@ -346,11 +349,6 @@ d3.csv("fremont.csv", function(thedata) //load data
 		//d3.max(daysNB, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
 	]);
 	
-	// store width of sidebar
-	var sidebarwidth = parseInt(d3.select("#sidebar").style("width"));
-	var tooltipwidth = parseInt(d3.select("#tooltip").style("width"));
-	var headerheight = parseInt(d3.select("#header").style("height"));
-	
 	// draw all NB day lines
 	var nbday = viz_alldays.selectAll(".nbday")
 		.data(nbcycledata)
@@ -421,6 +419,11 @@ d3.csv("fremont.csv", function(thedata) //load data
 				"daytype":d[0].IsWeekday};
 		})
 		.map(thedata);
+	
+	var tooltip = {"div":d3.select("#tooltip")};
+	tooltip.date = tooltip.div.select("#date");
+	tooltip.maxtemp = tooltip.div.select("#maxtemp");
+	tooltip.precip = tooltip.div.select("#precip");
 	
 	function change()
 	{
@@ -586,21 +589,21 @@ d3.csv("fremont.csv", function(thedata) //load data
 	
 	function moused_over(d)
 	{
-		var tooltip= d3.select("#tooltip");
 		// update tooltip position
-		tooltip
+		var mouse = d3.mouse(this);
+		tooltip.div
 			.style("left",
-				(d3.mouse(this)[0] + sidebarwidth + tooltipwidth/2)
+				(mouse[0] + 455)
 				+ "px")
 			.style("top",
-				(d3.mouse(this)[1] + headerheight)
+				(mouse[1] + 50)
 				+ "px");
 		// update tooltip info
-		tooltip.select("#date").text(d.key);
-		tooltip.select("#maxtemp").text(weather_lookup[d.key].temp);
-		tooltip.select("#precip").text(weather_lookup[d.key].precip);
+		tooltip.date.text(d.key);
+		tooltip.maxtemp.text(weather_lookup[d.key].temp);
+		tooltip.precip.text(weather_lookup[d.key].precip);
 		// trigger tooltip display
-		tooltip.classed("hidden", false);
+		tooltip.div.classed("hidden", false);
 		// change line thickness and opacity
 		d3.select(this)
 			.style("stroke-width", "4px")
@@ -609,7 +612,7 @@ d3.csv("fremont.csv", function(thedata) //load data
 	function moused_out()
 	{
 		// hide tooltip
-		d3.select("#tooltip").classed("hidden", true);
+		tooltip.div.classed("hidden", true);
 		// transition line highlight back to normal
 		d3.select(this)
 			.transition().duration(250)
