@@ -3,7 +3,8 @@
 <style>
 body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  margin: auto;
+  margin: 0;
+  padding: 0;
   position: relative;
 }
 
@@ -15,9 +16,15 @@ svg {
   font: 10px sans-serif;
 }
 
+form {
+	text-align: center;
+	margin-bottom: 25px;
+}
+
 .caption {
 	font-size: 10px;
 	text-align: center;
+	padding-bottom: 25px;
 }
 
 .axis path,
@@ -40,7 +47,7 @@ svg {
 
 .sbday{
 	opacity: 0.1;
-	stroke: brown;
+	stroke: sandybrown;
 }
 
 .nbday{
@@ -50,29 +57,80 @@ svg {
 
 .nbavg {
 	stroke-width: 5px;
-	stroke: skyblue;
+	stroke: navy;
 }
 .sbavg{
 	stroke-width: 5px;
-	stroke: sandybrown;
+	stroke: brown;
+}
+
+#header {
+	position: fixed;
+	top: 20px;
+	height: 50px;
+	width: 100%;
+	font-weight: bold;
+	text-align: center;
+	font-size: 18px;
 }
 
 #sidebar {
-	float: left;
+	position:fixed;
+	top: 20px;
+	left: 20px;
+	bottom: 0px;
+	width: 380px;
 }
 
-#vis {
-	float: right;
+#parent {
+	margin-top: 50px;
+	margin-left: 400px;
+	margin-right: 20px;
+	margin-bottom: 20px;
+	width: auto;
+}
+
+#tooltip {
+        position: absolute;
+        width: 150px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+}
+
+#tooltip.hidden {
+        display: none;
+}
+
+#tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 10px;
+        line-height: 14px;
+}
+
+#numdaysbar {
+	padding: 10px 0;
+	background-color: lightgrey;
+	text-align: center;
+}
+
+#legend {
+	margin: 25px 0;
 }
 
 </style>
+<div id="header">Fremont Bridge Bicycle Counts</div>
+<div id="parent">
 <div id="sidebar">
 <table>
-	<tr>
-		<th colspan="2">
-			Fremont Bridge Bicycle Counts
-		</th>
-	</tr>
 	<tr>
 		<td colspan="2">
 			<form>
@@ -91,14 +149,37 @@ svg {
 		<td id="precip"></td>
 	</tr>
 	<tr>
-		<td>Day of Year:</td>
+		<td>Timeframe:</td>
 		<td id="time"></td>
 	</tr>
 	<tr>
-		<td id="numdays">910 Days Selected</td>
-		<td class="caption">(brush to select)</td>
+		<td></td>
+		<td class="caption"><em>(brush to select)</em></td>
+	</tr>
+	<tr>
+		<td colspan = "2" id="numdaysbar"><strong id="numdays">910</strong> Days Selected</td>
 	</tr>
 </table>
+<table id="legend">
+	<tr>
+		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="nbday" style="stroke-width: 3px; opacity: 1;"></svg> Northbound</td>
+		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="nbavg"></svg> Northbound Average</td>
+	</tr>
+	<tr>
+		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="sbday" style="stroke-width: 3px; opacity: 1;"></svg> Southbound</td>
+		<td><svg height="20", width="30"><line x1="0", y1="10", x2="30", y2="10" class="sbavg"></svg> Southbound Average</td>
+	</tr>
+	<tr>
+		<td colspan="2" class="caption">Data from 10/2/12 to 3/31/15, <a href="https://data.seattle.gov/Transportation/Fremont-Bridge-Hourly-Bicycle-Counts-by-Month-Octo/65db-xm6k">available here</a>.</td></td></td>
+	</tr>
+</table>
+</div>
+<div id="vis"></div>
+<div id="tooltip" class="hidden">
+        <p><strong>Date:</strong> <span id="date">1989-03-21</span></p>
+        <p><strong>Max temp.:</strong> <span id="maxtemp">1000</span> ºF</p>
+		<p><strong>Precip.:</strong> <span id="precip">100</span> in.</p>
+</div>
 </div>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script>
@@ -126,16 +207,9 @@ function build_bar(selector, axis, brush)
 	return svg;
 }
 
-// global variable for dataset
-var thedata;
-
-var numEntriesPerDay = 48;
-
 var margin = {top: 20, right: 20, bottom: 30, left: 50},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
-	
-var parseDate = d3.time.format("%d-%b-%y").parse;
+    width = document.getElementById("vis").clientWidth - margin.left - margin.right,
+    height = document.getElementById("sidebar").clientHeight - 80 - margin.top - margin.bottom;
 
 var xScale = d3.scale.linear()
     .range([0, width]);
@@ -157,7 +231,6 @@ var yAxis = d3.svg.axis()
     .orient("left");
 	
 var line = d3.svg.line()
-	.interpolate("linear")
     .x(function(d) { return xScale(d.key); })
     .y(function(d) { return yScale(d.values); });
 	
@@ -165,8 +238,7 @@ var avgline = d3.svg.line()
 	.x(function(d) { return xScale(d.key); })
 	.y(function(d) { return yScale(+d.values); });
 	
-var viz = d3.select("body").append("svg")
-	.attr("id", "vis")
+var viz = d3.select("#vis").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
@@ -175,6 +247,8 @@ var viz = d3.select("body").append("svg")
 var viz_alldays = viz.append("g");
 var viz_agg = viz.append("g");
 var viz_axes = viz.append("g");
+
+var numdays = d3.select("#numdays");
 
 d3.csv("fremont.csv", function(thedata) //load data
 {
@@ -275,11 +349,53 @@ d3.csv("fremont.csv", function(thedata) //load data
 		//d3.max(daysNB, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
 	]);
 	
+	// draw all NB day lines
+	var nbday = viz_alldays.selectAll(".nbday")
+		.data(nbcycledata)
+		.enter()
+		.append("path")
+			.attr("class", "line nbday")
+			.attr("d", function(d) { return line(d.values); })
+			.on("mouseover", moused_over)
+			.on("mouseout", moused_out);
+	
+	// draw all SB day lines
+	var sbday = viz_alldays.selectAll(".sbday")
+		.data(sbcycledata)
+		.enter()
+		.append("path")
+			.attr("class", "line sbday")
+			.attr("d", function(d) { return line(d.values); })
+			.on("mouseover", moused_over)
+			.on("mouseout", moused_out);
+	 
+	 // draw line for NB average
+	 var nbavgline = viz_agg.append("path")
+		.datum(NBavgdata)
+		.attr("class", "line nbavg")
+		.attr("id", "nbavg")
+		.attr("d", function(d) { return avgline(d); });
+	 
+	 // draw line for SB average
+	 var sbavgline = viz_agg.append("path")
+		.datum(SBavgdata)
+		.attr("class", "line sbavg")
+		.attr("id", "sbavg")
+		.attr("d", function(d) { return avgline(d); });
+	
+	d3.selectAll("input")
+		.on("change", day_changed);
+		
 	// draw x-axis:
 	viz_axes.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
+      .call(xAxis)
+	  .append("text")
+	  .attr("y", "3em")
+	  .attr("x", (width + margin.right) / 2)
+	  .attr("text-anchor", "start")
+	  .text("Time");
 	  
 	//draw y-axis:
 	viz_axes.append("g")
@@ -292,75 +408,22 @@ d3.csv("fremont.csv", function(thedata) //load data
       .style("text-anchor", "end")
       .text("Cyclists");
 	
-	// draw all NB day lines
-	var nbday = viz_alldays.selectAll(".nbday")
-		.data(nbcycledata)
-		.enter()
-		.append("path")
-			.attr("class", "line nbday")
-			.attr("d", function(d) { return line(d.values); })
-			.on("mouseover", function() {
-				d3.select(this)
-					.style("stroke-width", "4px")
-					.style("opacity", "1.0");
-			})
-			.on("mouseout", function() {
-				d3.select(this)
-					.transition().duration(300)
-					.style("stroke-width", "0.5px")	
-					.style("opacity", "0.1");
-			})
-			.append("title")
-			.text(function(d) {
-				return "Date: " + d.key;
-			});
-	
-	// draw all SB day lines
-	var sbday = viz_alldays.selectAll(".sbday")
-		.data(sbcycledata)
-		.enter()
-		.append("path")
-			.attr("class", "line sbday")
-			.attr("d", function(d) { return line(d.values); })
-			.on("mouseover", function() {
-				d3.select(this)
-					.style("stroke-width", "4px")
-					.style("opacity", "1.0");
-			})
-			.on("mouseout", function() {
-				d3.select(this)
-					.transition().duration(300)
-					.style("stroke-width", "0.5px")	
-					.style("opacity", "0.1");
-			})
-			.append("title")
-			.text(function(d) {
-				return "Date: " + d.key;
-			});
-	 
-	 // draw line for NB average
-	 viz_agg.append("path")
-		.datum(NBavgdata)
-		.attr("class", "line nbavg")
-		.attr("d", function(d) { return avgline(d); });
-	 
-	 // draw line for SB average
-	 viz_agg.append("path")
-		.datum(SBavgdata)
-		.attr("class", "line sbavg")
-		.attr("d", function(d) { return avgline(d); });
-	
-	d3.selectAll("input")
-		.on("change", day_changed);
-	
 	//Create weather data lookup table
 	var weather_lookup = d3.nest()
 		.key(function(d) { return d.Date; })
 		.rollup(function(d)
 		{
-			return {"temp":d[0].Max_TemperatureF, "precip":d[0].PrecipitationIn};
+			return {
+				"temp":d[0].Max_TemperatureF,
+				"precip":d[0].PrecipitationIn,
+				"daytype":d[0].IsWeekday};
 		})
-		.entries(thedata);
+		.map(thedata);
+	
+	var tooltip = {"div":d3.select("#tooltip")};
+	tooltip.date = tooltip.div.select("#date");
+	tooltip.maxtemp = tooltip.div.select("#maxtemp");
+	tooltip.precip = tooltip.div.select("#precip");
 	
 	function change()
 	{
@@ -442,21 +505,8 @@ d3.csv("fremont.csv", function(thedata) //load data
 			.append("path")
 			.attr("class", "line nbday")
 			.attr("d", function(d) { return line(d.values); })
-			.on("mouseover", function() {
-				d3.select(this)
-					.style("stroke-width", "4px")
-					.style("opacity", "1.0");
-			})
-			.on("mouseout", function() {
-				d3.select(this)
-					.transition().duration(300)
-					.style("stroke-width", "0.5px")	
-					.style("opacity", "0.1");
-			})
-			.append("title")
-			.text(function(d) {
-				return "Date: " + d.key;
-			});
+			.on("mouseover", moused_over)
+			.on("mouseout", moused_out);
 		//take care of outgoing nb lines - delete them
 		nblines.exit()
 			.transition()
@@ -476,21 +526,8 @@ d3.csv("fremont.csv", function(thedata) //load data
 			.append("path")
 			.attr("class", "line sbday")
 			.attr("d", function(d) { return line(d.values); })
-			.on("mouseover", function() {
-				d3.select(this)
-					.style("stroke-width", "4px")
-					.style("opacity", "1.0");
-			})
-			.on("mouseout", function() {
-				d3.select(this)
-					.transition().duration(300)
-					.style("stroke-width", "0.5px")	
-					.style("opacity", "0.1");
-			})
-			.append("title")
-			.text(function(d) {
-				return "Date: " + d.key;
-			});
+			.on("mouseover", moused_over)
+			.on("mouseout", moused_out);
 		//take care of outgoing sb lines - delete them
 		sblines.exit()
 			.transition()
@@ -504,20 +541,18 @@ d3.csv("fremont.csv", function(thedata) //load data
 			
 		/* Update average lines */
 		// update NB average
-		d3.select(".nbavg")
-			.datum(NBavgdata)
+		nbavgline.datum(NBavgdata)
 			.transition()
 			.duration(1000)
 			.attr("d", function(d) { return avgline(d); });
 		//update SB average
-		d3.select(".sbavg")
-			.datum(SBavgdata)
+		sbavgline.datum(SBavgdata)
 			.transition()
 			.duration(1000)
 			.attr("d", function(d) { return avgline(d); });
 		
 		
-		d3.select("#numdays").text(nbcycledata.length + " days selected")
+		numdays.text(nbcycledata.length);
 	}
 	
 	function day_changed()
@@ -551,6 +586,39 @@ d3.csv("fremont.csv", function(thedata) //load data
 		time_selection[1] = time_selection[1] % 365;
 		change();
 	}
+	
+	function moused_over(d)
+	{
+		// update tooltip position
+		var mouse = d3.mouse(this);
+		tooltip.div
+			.style("left",
+				(mouse[0] + 455)
+				+ "px")
+			.style("top",
+				(mouse[1] + 50)
+				+ "px");
+		// update tooltip info
+		tooltip.date.text(d.key);
+		tooltip.maxtemp.text(weather_lookup[d.key].temp);
+		tooltip.precip.text(weather_lookup[d.key].precip);
+		// trigger tooltip display
+		tooltip.div.classed("hidden", false);
+		// change line thickness and opacity
+		d3.select(this)
+			.style("stroke-width", "4px")
+			.style("opacity", "1.0");
+	}
+	function moused_out()
+	{
+		// hide tooltip
+		tooltip.div.classed("hidden", true);
+		// transition line highlight back to normal
+		d3.select(this)
+			.transition().duration(250)
+			.style("stroke-width", "0.5px")	
+			.style("opacity", "0.1");
+		}
 });
 </script>
 </body>
